@@ -134,6 +134,8 @@ func parseArgs(args []string) (*config, []string, error) {
 			continue
 		}
 		switch args[i] {
+		case "-h", "-help", "--help":
+			return nil, nil, HELP_TEXT
 		case "-v", "--verbose":
 			cfg.verbosity++
 			continue
