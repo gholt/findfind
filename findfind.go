@@ -20,9 +20,16 @@ Searches for files in a directory hierarchy; tries to be GNU find compatible.
 
 Currently supports the following options:
 
+( )
+-a -and
 -help --help
 -iname
 -name
+! -not
+-o -or
+-type
+    Only 'd' and 'f' for now; and everything not a dir matches 'f', for now.
+-print
 
 Also has the following options:
 
@@ -322,6 +329,47 @@ func generateMatcher(args []string, justOne bool) ([]string, func(string, os.Fil
 					return fc(item, fi) && fd(item, fi)
 				}
 			}
+		case "-type":
+			if len(args) == 1 {
+				return nil, nil, errors.New("-type requires a value")
+			}
+			typ := args[1]
+			switch typ {
+			case "d", "f":
+			default:
+				return nil, nil, fmt.Errorf("unknown -type %q", typ)
+			}
+			args = args[2:]
+			fb = func(item string, fi os.FileInfo) bool {
+				if fi == nil {
+					fmt.Println(item, "type", typ)
+					return true
+				}
+				switch typ {
+				case "d":
+					return fi.IsDir()
+				case "f":
+					return !fi.IsDir()
+				}
+				panic("this error path should have been handle by the outside switch typ")
+			}
+			if fa == nil {
+				fa = fb
+			} else {
+				fc := fa
+				fd := fb
+				fa = func(item string, fi os.FileInfo) bool {
+					if fi == nil {
+						fmt.Println(item, "&&")
+						item += "  "
+						fc(item, fi)
+						return fd(item, fi)
+					}
+					return fc(item, fi) && fd(item, fi)
+				}
+			}
+		case "-print":
+			// -print is always used for now
 		default:
 			return args, fa, fmt.Errorf("unsure how to continue: %s", args)
 		}
